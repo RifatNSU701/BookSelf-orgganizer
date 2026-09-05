@@ -1,0 +1,35 @@
+Start testing: Sep 05 12:49 Bangladesh Standard Time
+----------------------------------------------------------
+1/2 Testing: repository_persistence
+1/2 Test: repository_persistence
+Command: "C:/Users/ASUS/BookSelf-orgganizer/build/test_repository.exe"
+Directory: C:/Users/ASUS/BookSelf-orgganizer/build
+"repository_persistence" start time: Sep 05 12:49 Bangladesh Standard Time
+Output:
+----------------------------------------------------------
+All repository persistence tests passed.
+<end of output>
+Test time =   0.06 sec
+----------------------------------------------------------
+Test Passed.
+"repository_persistence" end time: Sep 05 12:49 Bangladesh Standard Time
+"repository_persistence" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/2 Testing: worker_pool_stress
+2/2 Test: worker_pool_stress
+Command: "C:/Users/ASUS/BookSelf-orgganizer/build/test_worker_pool.exe"
+Directory: C:/Users/ASUS/BookSelf-orgganizer/build
+"worker_pool_stress" start time: Sep 05 12:49 Bangladesh Standard Time
+Output:
+----------------------------------------------------------
+Worker-pool stress test passed: 2000 tasks completed.
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"worker_pool_stress" end time: Sep 05 12:49 Bangladesh Standard Time
+"worker_pool_stress" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Sep 05 12:49 Bangladesh Standard Time
