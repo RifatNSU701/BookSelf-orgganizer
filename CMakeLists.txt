@@ -23,6 +23,7 @@ set(BSO_CORE_SOURCES
     src/process_manager.c
     src/search.c
     src/sorting.c
+    src/storage.c
     src/synchronization.c
     src/thread_manager.c
     src/utils.c
@@ -30,9 +31,7 @@ set(BSO_CORE_SOURCES
 
 add_library(bookshelf_core STATIC ${BSO_CORE_SOURCES})
 
-set_target_properties(bookshelf_core PROPERTIES
-    OUTPUT_NAME "bookshelf_core"
-)
+set_target_properties(bookshelf_core PROPERTIES OUTPUT_NAME "bookshelf_core")
 
 target_include_directories(bookshelf_core
     PUBLIC
@@ -84,6 +83,6 @@ install(TARGETS bookshelf_core
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-install(FILES include/bookshelf_core.h
+install(FILES include/bookshelf_core.h include/storage.h
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bookshelf
 )
