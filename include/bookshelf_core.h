@@ -47,6 +47,8 @@ BsError bs_inventory_assign_shelves(BsInventory *inventory);
 BsError bs_inventory_sort_title(BsInventory *inventory);
 BsError bs_inventory_sort_genre(BsInventory *inventory);
 BsError bs_inventory_sort_year(BsInventory *inventory);
+BsError bs_inventory_load_file(BsInventory *inventory, const char *path);
+BsError bs_inventory_save_file(const BsInventory *inventory, const char *path);
 const char *bs_error_string(BsError error);
 
 #ifdef __cplusplus
