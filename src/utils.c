@@ -25,14 +25,12 @@ char *trim(char *s)
     if (s == NULL) {
         return s;
     }
-    /* Skip leading whitespace. */
     while (*s != '\0' && isspace((unsigned char)*s)) {
         s++;
     }
     if (*s == '\0') {
-        return s; /* all spaces */
+        return s;
     }
-    /* Trim trailing whitespace. */
     end = s + strlen(s) - 1;
     while (end > s && isspace((unsigned char)*end)) {
         *end = '\0';
@@ -69,7 +67,7 @@ int str_casestr_portable(const char *haystack, const char *needle)
         return 0;
     }
     if (needle[0] == '\0') {
-        return 1; /* empty needle matches everything */
+        return 1;
     }
     nlen = strlen(needle);
 
@@ -99,17 +97,14 @@ int read_line(char *buf, size_t size, void *stream)
         return 0;
     }
     if (fgets(buf, (int)size, fp) == NULL) {
-        return 0; /* EOF or error */
+        return 0;
     }
     len = strlen(buf);
     if (len > 0 && buf[len - 1] == '\n') {
-        buf[len - 1] = '\0'; /* strip newline */
+        buf[len - 1] = '\0';
     } else if (len == size - 1) {
-        /* Line longer than the buffer: discard the remainder so the next
-         * read starts on a fresh line. */
         int ch;
         while ((ch = fgetc(fp)) != '\n' && ch != EOF) {
-            /* discard */
         }
     }
     return 1;
