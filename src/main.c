@@ -107,7 +107,11 @@ int main(void)
             case 7: action_organize(inventory); break;
             case 9: run_process_demo(DATA_PATH); break;
             case 10: action_race_demo(); break;
-            case 11: result = bs_repository_save(&repository, inventory); printf(result == BS_OK ? "Inventory saved to %s.\n" : "Failed to save inventory: %s\n", DATA_PATH, bs_error_string(result)); break;
+            case 11:
+                result = bs_repository_save(&repository, inventory);
+                if (result == BS_OK) printf("Inventory saved to %s.\n", DATA_PATH);
+                else printf("Failed to save inventory: %s\n", bs_error_string(result));
+                break;
             case 12: running = 0; break;
         }
     }
