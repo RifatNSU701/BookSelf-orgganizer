@@ -13,6 +13,7 @@ include(GNUInstallDirs)
 include(CTest)
 
 find_package(Threads REQUIRED)
+find_package(SQLite3 REQUIRED)
 
 set(BSO_CORE_SOURCES
     src/bookshelf_core.c
@@ -24,21 +25,17 @@ set(BSO_CORE_SOURCES
     src/search.c
     src/sorting.c
     src/storage.c
+    src/storage_sqlite.c
     src/synchronization.c
     src/thread_manager.c
     src/utils.c
 )
 
 add_library(bookshelf_core STATIC ${BSO_CORE_SOURCES})
-
 set_target_properties(bookshelf_core PROPERTIES OUTPUT_NAME "bookshelf_core")
 
-target_include_directories(bookshelf_core
-    PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-target_link_libraries(bookshelf_core PUBLIC Threads::Threads)
+target_include_directories(bookshelf_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(bookshelf_core PUBLIC Threads::Threads SQLite::SQLite3)
 
 target_compile_options(bookshelf_core PRIVATE
     $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>
@@ -63,26 +60,14 @@ endif()
 
 set_target_properties(bookshelf-organizer PROPERTIES OUTPUT_NAME "BookShelfOrganizer")
 
-target_compile_definitions(bookshelf_core PRIVATE
-    $<$<CONFIG:Debug>:BSO_DEBUG_BUILD=1>
-)
-
-target_compile_definitions(bookshelf-organizer PRIVATE
-    $<$<CONFIG:Debug>:BSO_DEBUG_BUILD=1>
-)
+target_compile_definitions(bookshelf_core PRIVATE $<$<CONFIG:Debug>:BSO_DEBUG_BUILD=1>)
+target_compile_definitions(bookshelf-organizer PRIVATE $<$<CONFIG:Debug>:BSO_DEBUG_BUILD=1>)
 
 if(BSO_BUILD_TESTS AND BUILD_TESTING)
     enable_testing()
 endif()
 
-install(TARGETS bookshelf-organizer
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
-install(TARGETS bookshelf_core
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-
-install(FILES include/bookshelf_core.h include/storage.h
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bookshelf
-)
+install(TARGETS bookshelf-organizer RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS bookshelf_core ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES include/bookshelf_core.h include/storage.h include/storage_sqlite.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bookshelf)
