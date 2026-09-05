@@ -30,6 +30,7 @@ set(BSO_CORE_SOURCES
     src/synchronization.c
     src/thread_manager.c
     src/utils.c
+    src/worker_pool.c
 )
 
 add_library(bookshelf_core STATIC ${BSO_CORE_SOURCES})
@@ -38,12 +39,12 @@ target_include_directories(bookshelf_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/inc
 target_link_libraries(bookshelf_core PUBLIC Threads::Threads SQLite::SQLite3)
 target_compile_options(bookshelf_core PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>)
 
+target_compile_definitions(bookshelf_core PRIVATE $<$<CONFIG:Debug>:BSO_DEBUG_BUILD=1>)
+
 add_executable(bookshelf-organizer src/main.c)
 target_link_libraries(bookshelf-organizer PRIVATE bookshelf_core)
 target_compile_options(bookshelf-organizer PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>)
 set_target_properties(bookshelf-organizer PROPERTIES OUTPUT_NAME "BookShelfOrganizer")
-
-target_compile_definitions(bookshelf_core PRIVATE $<$<CONFIG:Debug>:BSO_DEBUG_BUILD=1>)
 target_compile_definitions(bookshelf-organizer PRIVATE $<$<CONFIG:Debug>:BSO_DEBUG_BUILD=1>)
 
 if(BSO_ENABLE_SANITIZERS AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
@@ -68,4 +69,4 @@ endif()
 
 install(TARGETS bookshelf-organizer bookshelf-migrate RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(TARGETS bookshelf_core ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(FILES include/bookshelf_core.h include/storage.h include/storage_sqlite.h include/repository.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bookshelf)
+install(FILES include/bookshelf_core.h include/storage.h include/storage_sqlite.h include/repository.h include/worker_pool.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bookshelf)
