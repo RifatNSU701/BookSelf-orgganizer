@@ -33,41 +33,34 @@ set(BSO_CORE_SOURCES
 
 add_library(bookshelf_core STATIC ${BSO_CORE_SOURCES})
 set_target_properties(bookshelf_core PROPERTIES OUTPUT_NAME "bookshelf_core")
-
 target_include_directories(bookshelf_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(bookshelf_core PUBLIC Threads::Threads SQLite::SQLite3)
-
-target_compile_options(bookshelf_core PRIVATE
-    $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>
-)
-
-if(BSO_ENABLE_SANITIZERS AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(bookshelf_core PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
-    target_link_options(bookshelf_core PRIVATE -fsanitize=address,undefined)
-endif()
+target_compile_options(bookshelf_core PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>)
 
 add_executable(bookshelf-organizer src/main.c)
 target_link_libraries(bookshelf-organizer PRIVATE bookshelf_core)
-
-target_compile_options(bookshelf-organizer PRIVATE
-    $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>
-)
-
-if(BSO_ENABLE_SANITIZERS AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(bookshelf-organizer PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
-    target_link_options(bookshelf-organizer PRIVATE -fsanitize=address,undefined)
-endif()
-
+target_compile_options(bookshelf-organizer PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>)
 set_target_properties(bookshelf-organizer PROPERTIES OUTPUT_NAME "BookShelfOrganizer")
 
 target_compile_definitions(bookshelf_core PRIVATE $<$<CONFIG:Debug>:BSO_DEBUG_BUILD=1>)
 target_compile_definitions(bookshelf-organizer PRIVATE $<$<CONFIG:Debug>:BSO_DEBUG_BUILD=1>)
 
+if(BSO_ENABLE_SANITIZERS AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(bookshelf_core PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(bookshelf_core PRIVATE -fsanitize=address,undefined)
+    target_compile_options(bookshelf-organizer PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(bookshelf-organizer PRIVATE -fsanitize=address,undefined)
+endif()
+
+add_executable(bookshelf-migrate src/migrate.c)
+target_link_libraries(bookshelf-migrate PRIVATE bookshelf_core)
+target_compile_options(bookshelf-migrate PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>)
+set_target_properties(bookshelf-migrate PROPERTIES OUTPUT_NAME "BookShelfMigrate")
+
 if(BSO_BUILD_TESTS AND BUILD_TESTING)
     enable_testing()
 endif()
 
-install(TARGETS bookshelf-organizer RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS bookshelf-organizer bookshelf-migrate RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(TARGETS bookshelf_core ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(FILES include/bookshelf_core.h include/storage.h include/storage_sqlite.h
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bookshelf)
+install(FILES include/bookshelf_core.h include/storage.h include/storage_sqlite.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bookshelf)
