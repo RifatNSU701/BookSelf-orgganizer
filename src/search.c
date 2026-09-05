@@ -1,11 +1,3 @@
-/*
- * search.c
- * Read operations over the shared inventory. Reads acquire the same mutex as
- * writes: a search running concurrently with the inventory update thread must
- * not observe a partially-updated record. This shows the critical section
- * protects readers too, not only writers.
- */
-
 #include "search.h"
 #include "utils.h"
 
@@ -31,7 +23,6 @@ static void print_book_detail(const Book *b)
     printf("  ---------------------------------------------\n");
 }
 
-/* Shared driver: field == 0 title, 1 author, 2 genre. */
 static void search_generic(Inventory *inv, const char *query, int field)
 {
     int i, matches = 0;
@@ -40,7 +31,7 @@ static void search_generic(Inventory *inv, const char *query, int field)
         return;
     }
 
-    pthread_mutex_lock(&inv->lock);   /* read under the lock */
+    pthread_mutex_lock(&inv->lock);
     printf("\n==================== SEARCH RESULTS ====================\n");
     for (i = 0; i < inv->count; i++) {
         const Book *b = &inv->books[i];
