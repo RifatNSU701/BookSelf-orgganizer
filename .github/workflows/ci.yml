@@ -18,11 +18,11 @@ jobs:
           sudo apt-get install -y cmake ninja-build gcc libsqlite3-dev
       - name: Configure
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBSO_BUILD_TESTS=ON
+          cmake -S . -B build-ci-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DBSO_BUILD_TESTS=ON
       - name: Build
-        run: cmake --build build --parallel
+        run: cmake --build build-ci-release --parallel
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build-ci-release --output-on-failure
 
   sanitizer:
     runs-on: ubuntu-latest
@@ -35,8 +35,8 @@ jobs:
           sudo apt-get install -y cmake ninja-build gcc libsqlite3-dev
       - name: Configure
         run: |
-          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBSO_BUILD_TESTS=ON -DBSO_ENABLE_SANITIZERS=ON
+          cmake -S . -B build-ci-sanitizer -G Ninja -DCMAKE_BUILD_TYPE=Debug -DBSO_BUILD_TESTS=ON -DBSO_ENABLE_SANITIZERS=ON
       - name: Build
-        run: cmake --build build --parallel
+        run: cmake --build build-ci-sanitizer --parallel
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build-ci-sanitizer --output-on-failure
