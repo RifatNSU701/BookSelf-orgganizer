@@ -1,0 +1,23 @@
+# Bookshelf inventory data file
+# Format: Title|Author|Genre|Year
+# Lines starting with '#' and blank lines are ignored.
+Operating System Concepts|Abraham Silberschatz|Computer Science|2018
+Clean Code|Robert C. Martin|Computer Science|2008
+Computer Networks|Andrew S. Tanenbaum|Computer Science|2010
+The C Programming Language|Brian W. Kernighan|Computer Science|1988
+Introduction to Algorithms|Thomas H. Cormen|Computer Science|2009
+The Pragmatic Programmer|Andrew Hunt|Computer Science|1999
+Structure and Interpretation of Computer Programs|Harold Abelson|Computer Science|1996
+The Hobbit|J.R.R. Tolkien|Fantasy|1937
+The Lord of the Rings|J.R.R. Tolkien|Fantasy|1954
+A Game of Thrones|George R.R. Martin|Fantasy|1996
+Dune|Frank Herbert|Science Fiction|1965
+Neuromancer|William Gibson|Science Fiction|1984
+Foundation|Isaac Asimov|Science Fiction|1951
+1984|George Orwell|Dystopian|1949
+Brave New World|Aldous Huxley|Dystopian|1932
+Pride and Prejudice|Jane Austen|Classic|1813
+To Kill a Mockingbird|Harper Lee|Classic|1960
+The Great Gatsby|F. Scott Fitzgerald|Classic|1925
+Sapiens|Yuval Noah Harari|History|2011
+Cosmos|Carl Sagan|Science|1980

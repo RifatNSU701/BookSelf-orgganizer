@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="BookshelfManagement" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<!--
+			  TWO BUILD CONFIGURATIONS
+			  ========================
+			  * Debug / Release  -> native MinGW-GCC. Compiles and runs the
+			    THREAD + MUTEX + SEMAPHORE + inventory + sorting + search parts.
+			    The process demo prints an honest "no fork() on native MinGW"
+			    notice (see src/process_manager.c).
+			  * Debug-Cygwin / Release-Cygwin -> Cygwin GCC. Provides GENUINE
+			    POSIX fork()/wait(), so menu option 9 creates real child
+			    processes. Select the "Cygwin GCC" compiler for these targets
+			    in Settings -> Compiler, or set the global compiler to Cygwin.
+			  All targets link the pthreads library (-lpthread).
+			-->
+			<Target title="Debug">
+				<Option output="bin/Debug/BookshelfManagement" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="." />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-Wextra" />
+					<Add option="-g" />
+					<Add option="-std=c11" />
+					<Add option="-D_POSIX_C_SOURCE=200809L" />
+					<Add directory="include" />
+				</Compiler>
+				<Linker>
+					<Add option="-lpthread" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/BookshelfManagement" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="." />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-Wextra" />
+					<Add option="-O2" />
+					<Add option="-std=c11" />
+					<Add option="-D_POSIX_C_SOURCE=200809L" />
+					<Add directory="include" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="-lpthread" />
+				</Linker>
+			</Target>
+			<Target title="Debug-Cygwin">
+				<Option output="bin/Debug-Cygwin/BookshelfManagement" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="." />
+				<Option object_output="obj/Debug-Cygwin/" />
+				<Option type="1" />
+				<Option compiler="cygwin" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-Wextra" />
+					<Add option="-g" />
+					<Add option="-std=c11" />
+					<Add option="-D_POSIX_C_SOURCE=200809L" />
+					<Add directory="include" />
+				</Compiler>
+				<Linker>
+					<Add option="-lpthread" />
+				</Linker>
+			</Target>
+			<Target title="Release-Cygwin">
+				<Option output="bin/Release-Cygwin/BookshelfManagement" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="." />
+				<Option object_output="obj/Release-Cygwin/" />
+				<Option type="1" />
+				<Option compiler="cygwin" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-Wextra" />
+					<Add option="-O2" />
+					<Add option="-std=c11" />
+					<Add option="-D_POSIX_C_SOURCE=200809L" />
+					<Add directory="include" />
+				</Compiler>
+				<Linker>
+					<Add option="-lpthread" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add directory="include" />
+		</Compiler>
+		<Unit filename="include/bookshelf.h" />
+		<Unit filename="include/input.h" />
+		<Unit filename="include/inventory.h" />
+		<Unit filename="include/logger.h" />
+		<Unit filename="include/process_manager.h" />
+		<Unit filename="include/search.h" />
+		<Unit filename="include/sorting.h" />
+		<Unit filename="include/synchronization.h" />
+		<Unit filename="include/thread_manager.h" />
+		<Unit filename="include/utils.h" />
+		<Unit filename="src/bookshelf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/input.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/inventory.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/logger.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/process_manager.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/search.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/sorting.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/synchronization.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/thread_manager.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="src/utils.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>
