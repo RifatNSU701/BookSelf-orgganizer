@@ -1,8 +1,5 @@
 #include "storage.h"
 
-#include "inventory.h"
-
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -47,8 +44,7 @@ static BsError file_load(BsStorage *storage, BsInventory *inventory)
     if (storage == NULL || inventory == NULL) {
         return BS_INVALID_ARGUMENT;
     }
-    int loaded = inventory_load(&inventory->inventory, storage->location);
-    return loaded >= 0 ? BS_OK : BS_IO_ERROR;
+    return bs_inventory_load_file(inventory, storage->location);
 }
 
 static BsError file_save(BsStorage *storage, const BsInventory *inventory)
@@ -56,8 +52,7 @@ static BsError file_save(BsStorage *storage, const BsInventory *inventory)
     if (storage == NULL || inventory == NULL) {
         return BS_INVALID_ARGUMENT;
     }
-    int result = inventory_save((Inventory *)&inventory->inventory, storage->location);
-    return result == 0 ? BS_OK : BS_IO_ERROR;
+    return bs_inventory_save_file(inventory, storage->location);
 }
 
 static const BsStorageAdapter FILE_ADAPTER = {
