@@ -154,6 +154,22 @@ BsError bs_inventory_sort_year(BsInventory *inventory)
     return BS_OK;
 }
 
+BsError bs_inventory_load_file(BsInventory *inventory, const char *path)
+{
+    if (inventory == NULL || path == NULL) {
+        return BS_INVALID_ARGUMENT;
+    }
+    return inventory_load(&inventory->inventory, path) >= 0 ? BS_OK : BS_IO_ERROR;
+}
+
+BsError bs_inventory_save_file(const BsInventory *inventory, const char *path)
+{
+    if (inventory == NULL || path == NULL) {
+        return BS_INVALID_ARGUMENT;
+    }
+    return inventory_save((Inventory *)&inventory->inventory, path) == 0 ? BS_OK : BS_IO_ERROR;
+}
+
 const char *bs_error_string(BsError error)
 {
     switch (error) {
