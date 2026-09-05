@@ -40,8 +40,11 @@ typedef struct BsInventory BsInventory;
 
 BsError bs_inventory_create(BsInventory **inventory);
 void bs_inventory_destroy(BsInventory *inventory);
+BsError bs_inventory_clear(BsInventory *inventory);
 BsError bs_inventory_add(BsInventory *inventory, const char *title, const char *author, const char *genre, int year, int *book_id);
+BsError bs_inventory_import_book(BsInventory *inventory, const BsBook *book);
 BsError bs_inventory_count(const BsInventory *inventory, size_t *count);
+BsError bs_inventory_get_at(const BsInventory *inventory, size_t index, BsBook *book);
 BsError bs_inventory_get(const BsInventory *inventory, int id, BsBook *book);
 BsError bs_inventory_assign_shelves(BsInventory *inventory);
 BsError bs_inventory_sort_title(BsInventory *inventory);
