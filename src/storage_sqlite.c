@@ -1,6 +1,7 @@
 #include "storage_sqlite.h"
 
 #include <sqlite3.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 struct BsSqliteStorage {
@@ -65,7 +66,14 @@ BsError bs_sqlite_load(BsSqliteStorage *storage, BsInventory *inventory)
     if (sqlite3_prepare_v2(storage->db, sql, -1, &statement, NULL) != SQLITE_OK) return BS_STORAGE_ERROR;
 
     BsError result = bs_inventory_clear(inventory);
-    while (result == BS_OK && sqlite3_step(statement) == SQLITE_ROW) {
+    while (result == BS_OK) {
+        int step = sqlite3_step(statement);
+        if (step == SQLITE_DONE) break;
+        if (step != SQLITE_ROW) {
+            result = BS_STORAGE_ERROR;
+            break;
+        }
+
         BsBook book = {0};
         book.id = sqlite3_column_int(statement, 0);
         const unsigned char *title = sqlite3_column_text(statement, 1);
@@ -75,9 +83,9 @@ BsError bs_sqlite_load(BsSqliteStorage *storage, BsInventory *inventory)
             result = BS_STORAGE_ERROR;
             break;
         }
-        snprintf(book.title, sizeof(book.title), "%s", title);
-        snprintf(book.author, sizeof(book.author), "%s", author);
-        snprintf(book.genre, sizeof(book.genre), "%s", genre);
+        snprintf(book.title, sizeof(book.title), "%s", (const char *)title);
+        snprintf(book.author, sizeof(book.author), "%s", (const char *)author);
+        snprintf(book.genre, sizeof(book.genre), "%s", (const char *)genre);
         book.year = sqlite3_column_int(statement, 4);
         book.shelf = sqlite3_column_int(statement, 5);
         book.position = sqlite3_column_int(statement, 6);
@@ -85,9 +93,6 @@ BsError bs_sqlite_load(BsSqliteStorage *storage, BsInventory *inventory)
         result = bs_inventory_import_book(inventory, &book);
     }
 
-    if (result == BS_OK && sqlite3_errcode(storage->db) != SQLITE_OK && sqlite3_errcode(storage->db) != SQLITE_DONE) {
-        result = BS_STORAGE_ERROR;
-    }
     sqlite3_finalize(statement);
     return result;
 }
@@ -132,7 +137,11 @@ BsError bs_sqlite_save(BsSqliteStorage *storage, const BsInventory *inventory)
     }
 
     sqlite3_finalize(statement);
-    if (result != BS_OK || sqlite3_exec(storage->db, "COMMIT;", NULL, NULL, NULL) != SQLITE_OK) {
+    if (result != BS_OK) {
+        sqlite3_exec(storage->db, "ROLLBACK;", NULL, NULL, NULL);
+        return result;
+    }
+    if (sqlite3_exec(storage->db, "COMMIT;", NULL, NULL, NULL) != SQLITE_OK) {
         sqlite3_exec(storage->db, "ROLLBACK;", NULL, NULL, NULL);
         return BS_STORAGE_ERROR;
     }
