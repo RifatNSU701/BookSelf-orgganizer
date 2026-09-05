@@ -22,6 +22,7 @@ set(BSO_CORE_SOURCES
     src/inventory.c
     src/logger.c
     src/process_manager.c
+    src/repository.c
     src/search.c
     src/sorting.c
     src/storage.c
@@ -63,4 +64,4 @@ endif()
 
 install(TARGETS bookshelf-organizer bookshelf-migrate RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(TARGETS bookshelf_core ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(FILES include/bookshelf_core.h include/storage.h include/storage_sqlite.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bookshelf)
+install(FILES include/bookshelf_core.h include/storage.h include/storage_sqlite.h include/repository.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bookshelf)
