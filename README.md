@@ -1,245 +1,457 @@
-# Bookshelf Management System
+<div align="center">
 
-**Multithreaded and Multiprocess Bookshelf Management System Using Processes, POSIX Threads, Semaphores, and Mutex Locks**
+# BookShelf Organizer
 
-An Operating Systems course project written in C. It organises a personal book
-collection on a virtual bookshelf while demonstrating, with real OS primitives:
+### A production-minded, multithreaded bookshelf management system in C
 
-* **Processes** — genuine `fork()` / `waitpid()` (POSIX builds).
-* **POSIX threads** — `pthread_create` / `pthread_join` for concurrent sorting,
-  inventory update and search.
-* **Mutex** — `pthread_mutex_t` protects the shared digital inventory.
-* **POSIX semaphores** — `sem_init` / `sem_wait` / `sem_post` / `sem_destroy`
-  order the phases of the organization pipeline.
+**Native Windows binary • SQLite persistence • POSIX threading • Synchronization demonstrations**
 
----
+[![Language](https://img.shields.io/badge/C-C11-00599C?style=for-the-badge&logo=c)](https://en.wikipedia.org/wiki/C11_(C_standard_revision))
+[![Build System](https://img.shields.io/badge/CMake-4.x-064F8C?style=for-the-badge&logo=cmake)](https://cmake.org/)
+[![Database](https://img.shields.io/badge/SQLite-3.x-003B57?style=for-the-badge&logo=sqlite)](https://sqlite.org/)
+[![Platform](https://img.shields.io/badge/Platform-Windows%2011-0078D4?style=for-the-badge&logo=windows)](https://www.microsoft.com/windows/)
+[![Tests](https://img.shields.io/badge/Tests-2%2F2%20Passing-2EA44F?style=for-the-badge)](#testing)
 
-## Features
+A complete Operating Systems project demonstrating real processes, POSIX threads, mutexes, semaphores, concurrent work, persistent storage, logging, and bookshelf organization through a clean command-line application.
 
-* Load 20 sample books from `data/books.txt`.
-* Display all books; add new books (validated input).
-* Search by title, author, or genre (case-insensitive substring) and get the
-  shelf location.
-* Sort alphabetically, by genre, or by publication year — single-threaded
-  (for comparison) **or** concurrently through the multithreaded pipeline.
-* Assign books to physical shelves & positions, then display the bookshelf.
-* **Process demonstration**: parent forks two children (organization &
-  reporting), each with its own address space; parent `waitpid()`s and reads
-  their exit codes.
-* **Race-condition demonstration**: the same shared-counter workload run with
-  and without a mutex, so the effect of mutual exclusion is visible.
-* Thread-safe logging with real PIDs and thread ids to `logs/session.log`.
-* Persist the inventory back to disk.
+<br>
+
+### Download the Windows Application
+
+**[⬇ Download `BookShelfOrganizer.exe`](https://raw.githubusercontent.com/RifatNSU701/BookSelf-orgganizer/main/build/BookShelfOrganizer.exe)**
+
+> **Important:** The executable is built against SQLite and expects the application's runtime/data environment to be available. For the most reliable experience, use the executable from a clone of this repository and run it from the repository root. A fully portable release package with bundled runtime DLLs/installer is the next packaging step.
+
+</div>
 
 ---
 
-## Architecture (short version)
+## Overview
 
+**BookShelf Organizer** is a C11-based bookshelf management application created to demonstrate practical Operating Systems concepts through a working system rather than isolated examples.
+
+The application combines:
+
+- Persistent SQLite-backed storage
+- Book inventory management
+- Search and sorting
+- Shelf and position assignment
+- Multithreaded organization
+- Mutex-protected shared state
+- POSIX semaphore synchronization
+- Process creation and synchronization
+- Race-condition demonstration
+- Thread-safe logging
+- Automated tests
+- CMake-based builds
+
+The project is structured so that the core functionality is separated from the command-line interface, storage layer, synchronization layer, and test targets.
+
+---
+
+## Key Features
+
+### 📚 Inventory Management
+
+- Load and manage a book collection
+- Add new books with validated input
+- Display the complete inventory
+- Search by title, author, or genre
+- Case-insensitive substring matching
+- Track shelf and position information
+- Persist inventory data
+
+### ⚡ Concurrent Organization
+
+The organization pipeline demonstrates real concurrency using multiple worker threads.
+
+- Concurrent sorting operations
+- Inventory updates protected by a mutex
+- Semaphore-controlled phase ordering
+- Search performed after the inventory phase completes
+- Worker-pool based execution
+
+### 🔐 Synchronization
+
+The project demonstrates why different synchronization primitives exist and when each should be used.
+
+| Primitive | Purpose |
+|---|---|
+| `pthread_mutex_t` | Protect shared inventory state |
+| POSIX semaphore | Coordinate completion/order between phases |
+| `pthread_create()` | Execute concurrent tasks |
+| `pthread_join()` | Wait for worker completion |
+| `fork()` / `waitpid()` | Demonstrate parent/child processes on POSIX environments |
+
+### 🧪 Race-Condition Demonstration
+
+The application includes a controlled shared-counter demonstration that compares execution with and without mutual exclusion, making the effects of synchronization visible.
+
+### 📝 Logging
+
+Thread-safe session logging records process and thread information to:
+
+```text
+logs/session.log
 ```
-Menu (main.c)
-  |
-  |-- Concurrent organize (thread_manager.c)
-  |      3 sorting threads --post--> [counting semaphore sort_done]
-  |                                        |
-  |                                  inventory thread waits x3
-  |                                        |
-  |                                  lock(mutex) -> sort + assign shelves -> unlock
-  |                                        |
-  |                                  post[inventory_done] --> search thread (read under lock)
-  |
-  |-- Process demo (process_manager.c)
-  |      parent fork() -> child 1 (organize)  ]
-  |                    -> child 2 (report)    ]  separate address spaces
-  |      parent waitpid() both, reads exit codes
-  |
-  |-- Shared inventory (inventory.c) guarded by pthread_mutex_t
+
+### 💾 Persistent Storage
+
+SQLite is used as the persistent storage layer, allowing inventory data to survive application restarts.
+
+---
+
+## Architecture
+
+```text
+                           ┌─────────────────────┐
+                           │      main.c         │
+                           │    CLI / Menu       │
+                           └──────────┬──────────┘
+                                      │
+              ┌───────────────────────┼───────────────────────┐
+              │                       │                       │
+              ▼                       ▼                       ▼
+      ┌───────────────┐       ┌───────────────┐       ┌───────────────┐
+      │  Inventory    │       │ Thread Manager │       │   Process     │
+      │   & Search    │       │ / Worker Pool  │       │   Manager     │
+      └───────┬───────┘       └───────┬───────┘       └───────────────┘
+              │                       │
+              │                 ┌─────┴─────┐
+              │                 │ Mutex +   │
+              │                 │ Semaphores│
+              │                 └─────┬─────┘
+              │                       │
+              └───────────────┬───────┘
+                              ▼
+                    ┌───────────────────┐
+                    │   Storage Layer   │
+                    │ SQLite Repository  │
+                    └─────────┬─────────┘
+                              │
+                              ▼
+                         ┌─────────┐
+                         │ SQLite  │
+                         └─────────┘
 ```
 
-Full details are in `docs/architecture.md`, `docs/synchronization.md`,
-`docs/algorithms.md`, `docs/testing.md` and `docs/project_report.md`.
+### Source Organization
+
+```text
+BookSelf-orgganizer/
+├── CMakeLists.txt
+├── include/              # Public/internal headers
+├── src/                  # Application and core implementation
+├── tests/                # Automated test programs
+├── database/             # Database-related resources
+├── data/                 # Application/sample data
+├── docs/                 # Architecture, algorithms and project documentation
+├── logs/                 # Runtime logs
+├── build/                # Generated build artifacts and Windows binaries
+├── Makefile              # POSIX-oriented convenience build
+├── LICENSE
+└── README.md
+```
 
 ---
 
-## Requirements
+## Windows Quick Start
 
-* A C compiler (GCC / MinGW / Cygwin GCC).
-* POSIX threads and POSIX semaphores.
-* For the **genuine `fork()`** demonstration: a POSIX environment
-  (Cygwin, MSYS2, Linux or macOS). See the Windows section below.
+### Option 1 — Run the prebuilt executable
 
----
-
-## Windows 11 Setup
-
-This is the most important part of the setup for a Windows user.
-
-### Why native MinGW cannot run `fork()`
-
-`fork()` is a **POSIX system call**. It clones the calling process into a
-parent and a child, each with its own copy of the address space. Windows does
-not expose Unix `fork()` to ordinary programs, and **native MinGW does not
-implement it** — there is no `<unistd.h>` `fork()` you can link against. Any
-project that claims "MinGW fork()" is either using a POSIX layer underneath or
-faking it. This project refuses to fake it: on a native-MinGW build, menu
-option 9 prints an honest notice explaining the limitation instead of
-pretending a process was created.
-
-`pthreads` and POSIX semaphores, on the other hand, **are** available on MinGW
-(via the winpthreads runtime bundled with modern MinGW-w64), so the
-thread / mutex / semaphore parts run fully on native Windows.
-
-### Which environment supports genuine `fork()`
-
-| Environment                | pthreads | semaphores | genuine `fork()` |
-|----------------------------|:--------:|:----------:|:----------------:|
-| Native MinGW (MinGW-w64)   |   yes    |    yes     |    **no**        |
-| **Cygwin GCC**             |   yes    |    yes     |    **yes**       |
-| **MSYS2 (MSYS runtime)**   |   yes    |    yes     |    **yes**       |
-| Linux / macOS              |   yes    |    yes     |    **yes**       |
-
-**Recommendation for full marks:** build with **Cygwin GCC** (or MSYS2) so that
-every required concept — including real processes — runs. Use native MinGW only
-if you want to demonstrate the threads/semaphore/mutex portion.
-
-### Option A — Code::Blocks with native MinGW (threads/mutex/semaphore)
-
-1. Install **Code::Blocks with the MinGW bundle** (the "codeblocks-*-mingw"
-   installer from codeblocks.org).
-2. `File -> Open...` and choose `BookshelfManagement.cbp`.
-3. Select the **Debug** or **Release** target (top toolbar).
-4. **Build** (Ctrl+F9), then **Run** (Ctrl+F10).
-5. Menu options 1–8, 10, 11 work fully. Option 9 prints the honest
-   "no fork() on native MinGW" notice.
-
-If the linker complains about pthreads, open
-`Settings -> Compiler -> Linker settings` and confirm `-lpthread` is present
-(the `.cbp` already adds it). Some MinGW builds prefer `-pthread`; if so, add
-that instead under `Other linker options`.
-
-### Option B — Code::Blocks with Cygwin GCC (adds genuine fork())
-
-1. Install **Cygwin** (cygwin.com). In the Cygwin installer, select the
-   packages: `gcc-core`, `make`, and `libpthread` (usually pulled in
-   automatically).
-2. Open Code::Blocks. Go to
-   `Settings -> Compiler -> Selected compiler -> "Cygwin GCC"`.
-   * If "Cygwin GCC" is not listed, choose "GNU GCC Compiler", click
-     **Copy**, name it *Cygwin GCC*, then under **Toolchain executables** set
-     the **Compiler's installation directory** to your Cygwin `\bin` folder
-     (e.g. `C:\cygwin64\bin`) and set the C compiler to `gcc.exe`.
-3. Open `BookshelfManagement.cbp`, pick the **Debug-Cygwin** or
-   **Release-Cygwin** target (these are pre-configured to use the `cygwin`
-   compiler), then **Build** and **Run**.
-4. Menu option 9 now creates **real child processes** with distinct PIDs.
-
-> **PATH note:** if you run the `.exe` outside the Cygwin shell, keep
-> `cygwin1.dll` reachable (either run from the Cygwin terminal, or add
-> `C:\cygwin64\bin` to your Windows `PATH`).
-
-### Option C — MSYS2 / command line (simplest for a quick demo)
+1. Clone the repository:
 
 ```bash
-# In an MSYS2 MSYS shell (not the MinGW shell) for genuine fork():
-pacman -S gcc make
-cd /path/to/BookshelfManagement
-make
-make run
+git clone https://github.com/RifatNSU701/BookSelf-orgganizer.git
+cd BookSelf-orgganizer
 ```
 
----
+2. Make sure the repository contains the required `data/`, `database/`, and `logs/` directories.
 
-## Build & Run (POSIX / Makefile)
+3. Run the application from the repository root:
 
 ```bash
-make          # builds bin/BookshelfManagement
-make run      # builds and runs
-make clean    # removes objects and the binary
+./build/BookShelfOrganizer.exe
 ```
 
-Run **from the project root** so the relative paths `data/books.txt` and
-`logs/session.log` resolve. In Code::Blocks the working directory is set to `.`
-in the `.cbp`; if you moved things, set
-`Project -> Properties -> Build targets -> Execution working dir` to the project
-root.
+On PowerShell, use:
+
+```powershell
+.\build\BookShelfOrganizer.exe
+```
+
+Running from the project root is important because the application uses project-relative data and log paths.
+
+### Option 2 — Download only the executable
+
+Use the download button at the top of this README:
+
+**[Download BookShelfOrganizer.exe](https://raw.githubusercontent.com/RifatNSU701/BookSelf-orgganizer/main/build/BookShelfOrganizer.exe)**
+
+Place the executable inside a working copy of the repository and run it from the repository root.
+
+> A future release package should bundle every required runtime dependency and application resource so the program can be copied to a clean Windows machine and launched without a development environment. Until that package is published, the repository-based method is the recommended distribution path.
 
 ---
 
-## Menu
+## Build From Source on Windows
 
+### Prerequisites
+
+- Windows 10/11 x64
+- Git
+- CMake 3.20+
+- GCC / MinGW-w64
+- Ninja
+- SQLite3 development package
+
+The current Windows development environment used for this repository is **MSYS2 UCRT64** with GCC, CMake, Ninja, and SQLite3.
+
+### Configure
+
+From the project root in an MSYS2 UCRT64 terminal:
+
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBSO_BUILD_TESTS=ON
 ```
+
+### Build
+
+```bash
+cmake --build build --parallel
+```
+
+### Run tests
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+A successful test run should report:
+
+```text
+100% tests passed out of 2
+```
+
+### Run
+
+```bash
+./build/BookShelfOrganizer.exe
+```
+
+---
+
+## Application Menu
+
+```text
  1. Display all books
  2. Add a book
  3. Search for a book
  4. Sort alphabetically (single-thread)
  5. Sort by genre (single-thread)
- 6. Sort by publication date (single-thread)
- 7. Organize bookshelf (CONCURRENT: threads+sem+mutex)
+ 6. Sort by publication year (single-thread)
+ 7. Organize bookshelf (concurrent)
  8. Display bookshelf
- 9. Process demonstration (fork/wait)
-10. Race-condition demo (with vs without mutex)
-11. Save inventory to file
+ 9. Process demonstration
+10. Race-condition demonstration
+11. Save inventory
 12. Exit
 ```
 
 ---
 
-## Synchronization explanation
+## How the Concurrent Pipeline Works
 
-* **Mutex** (`Inventory.lock`) enforces **mutual exclusion** on the shared
-  inventory: only one thread mutates or reads the book array at a time, so
-  there are no lost updates or half-read records.
-* **Counting semaphore** (`sort_done`) enforces **ordering**: the inventory
-  thread waits until *all three* sorting threads have posted, then commits the
-  final order. A mutex cannot express "wait for N completions"; a semaphore can.
-* **Binary-style semaphore** (`inventory_done`) gates the search phase behind
-  the inventory update, so search never runs on a stale/incomplete shelf layout.
+The concurrent organization flow is designed to demonstrate synchronization rather than simply create threads for appearance.
+
+```text
+                    ┌──────────────────────┐
+                    │   Organization Start │
+                    └──────────┬───────────┘
+                               │
+                 ┌─────────────┼─────────────┐
+                 ▼             ▼             ▼
+             Sort Thread   Sort Thread   Sort Thread
+                 │             │             │
+                 └─────────────┼─────────────┘
+                               │
+                        sort_done semaphore
+                               │
+                               ▼
+                     Inventory Update Thread
+                               │
+                         mutex lock
+                               │
+                         Update + Shelves
+                               │
+                        mutex unlock
+                               │
+                               ▼
+                     inventory_done semaphore
+                               │
+                               ▼
+                         Search Thread
+```
+
+### Why a mutex?
+
+The inventory is shared mutable state. A mutex prevents simultaneous operations from corrupting or observing partially updated records.
+
+### Why a semaphore?
+
+A semaphore expresses phase completion: the inventory stage must wait until all required sorting workers have completed. A mutex alone cannot represent that dependency cleanly.
 
 ---
 
-## Data format
+## Process Demonstration
 
-`data/books.txt`, one book per line:
+The process demonstration uses `fork()` and `waitpid()` on environments that provide genuine POSIX process semantics.
 
+### Windows compatibility
+
+Native MinGW/UCRT64 provides the threading and synchronization functionality required by the Windows build, but **genuine POSIX `fork()` is not a native Windows system call**.
+
+For a true `fork()` demonstration, use a POSIX-compatible environment such as:
+
+- Linux
+- macOS
+- Cygwin
+- MSYS2 MSYS runtime
+
+The application does not fake process creation when `fork()` is unavailable.
+
+---
+
+## Data & Persistence
+
+The application uses SQLite for structured persistent storage and also contains project data resources under `data/` and `database/`.
+
+The repository is intentionally designed so that application data and source code are kept separate from generated build artifacts.
+
+Runtime logs are written under:
+
+```text
+logs/session.log
 ```
-Title|Author|Genre|Year
+
+---
+
+## Testing
+
+The project currently includes two CTest targets:
+
+| Test | Purpose | Status |
+|---|---|:---:|
+| `repository_persistence` | Validates persistence/repository behavior | ✅ |
+| `worker_pool_stress` | Exercises worker-pool concurrency | ✅ |
+
+Latest Windows build verification:
+
+```text
+2/2 tests passed
+100% tests passed
 ```
 
-Lines starting with `#` and blank lines are ignored. Twenty sample books ship
-with the project.
+---
+
+## Engineering Notes
+
+The project is intentionally built around a modular core library:
+
+```text
+bookshelf_core
+```
+
+The main executable and migration utility link against this shared project core, while tests exercise core functionality independently.
+
+Compiler diagnostics are enabled with strict warning flags including:
+
+```text
+-Wall
+-Wextra
+-Wpedantic
+-Wshadow
+-Wformat=2
+```
+
+This makes the build useful not only as an academic demonstration but also as a foundation for continued engineering hardening.
+
+---
+
+## Known Release Considerations
+
+The current repository contains a successfully built Windows executable and passing automated tests. Before publishing this as a polished consumer-facing binary release, the following packaging work is recommended:
+
+- Bundle the required SQLite/runtime DLLs
+- Produce a clean `dist/` directory containing only runtime files
+- Add a versioned release artifact such as `BookShelfOrganizer-v1.0.0-win64.zip`
+- Generate SHA-256 checksums
+- Add a GitHub Release with signed/verified artifacts where appropriate
+- Add a Windows installer for a one-click installation experience
+- Remove generated CMake internals from the user-facing distribution
+- Resolve compiler warnings before declaring a zero-warning release
+- Replace the deprecated `SQLite::SQLite3` CMake target with `SQLite3::SQLite3`
+
+These items are packaging/release-hardening tasks; they are separate from the successful source build and test verification.
 
 ---
 
 ## Troubleshooting
 
-* **`undefined reference to pthread_create` / `sem_init`** — the pthreads
-  library is not being linked. Ensure `-lpthread` (or `-pthread`) is in the
-  linker options. The `.cbp` and `Makefile` already include it.
-* **Option 9 says fork() is not supported** — you built with native MinGW.
-  Rebuild with a Cygwin/MSYS2 target (Option B/C above) for real processes.
-* **`could not open data/books.txt`** — you ran the program from the wrong
-  directory. Run from the project root, or fix the execution working dir.
-* **`cygwin1.dll not found`** when double-clicking the exe — run from the
-  Cygwin terminal or add `C:\cygwin64\bin` to `PATH`.
-* **Garbled output / interleaved lines** — should not happen; logging is
-  mutex-protected. If you added your own `printf`s inside threads, wrap them or
-  route them through `log_event`.
+### `BookShelfOrganizer.exe` does not start
+
+Run it from the repository root so the relative resource paths resolve correctly:
+
+```powershell
+cd C:\Users\ASUS\BookSelf-orgganizer
+.\build\BookShelfOrganizer.exe
+```
+
+If Windows reports a missing DLL, the current build is relying on a development/runtime dependency that has not yet been bundled. Use the source-build method above or wait for the portable release package.
+
+### SQLite cannot be found during CMake configuration
+
+Install the SQLite development package for your compiler environment and rerun configuration after removing the previous build directory.
+
+### `fork()` is unavailable
+
+This is expected on native Windows builds. Use a genuine POSIX environment if you specifically need the `fork()` demonstration.
+
+### Build directory is stale
+
+Remove it and configure from scratch:
+
+```bash
+rm -rf build
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBSO_BUILD_TESTS=ON
+```
 
 ---
 
-## Known Windows limitations
+## Project Documentation
 
-* Genuine `fork()` requires Cygwin/MSYS2 (documented above). Native MinGW is
-  fully supported for threads, mutex and semaphores only.
-* Thread ids printed in logs are a truncated numeric handle derived from
-  `pthread_self()`; they are stable within a run and adequate for demonstrating
-  which thread did what.
+Detailed technical material is available in:
+
+- `docs/architecture.md` — system architecture
+- `docs/synchronization.md` — mutexes, semaphores and concurrency
+- `docs/algorithms.md` — sorting and organization algorithms
+- `docs/testing.md` — testing strategy
+- `docs/project_report.md` — project report and technical discussion
 
 ---
 
-## Academic honesty
+## License
 
-Every required primitive is genuinely used — no decorative or fake code. The
-`fork()` limitation on native MinGW is stated plainly rather than disguised.
-The project was checked with `gcc -Wall -Wextra` (no warnings) and run through
-its menu paths; it was **not** claimed to be compiled in any environment where
-that was not actually done.
+See [`LICENSE`](./LICENSE) for the project's licensing terms.
+
+---
+
+<div align="center">
+
+### BookShelf Organizer
+
+**Built in C • Engineered around real OS concepts • Designed for continued hardening**
+
+[⬆ Back to top](#bookshelf-organizer)
+
+</div>
