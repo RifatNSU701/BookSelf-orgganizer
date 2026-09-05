@@ -27,6 +27,27 @@ void inventory_destroy(Inventory *inv)
     pthread_mutex_destroy(&inv->lock);
 }
 
+static int id_exists_locked(const Inventory *inv, int id)
+{
+    for (int i = 0; i < inv->count; ++i) {
+        if (inv->books[i].id == id) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int next_id_locked(const Inventory *inv)
+{
+    int id = 1;
+    for (;;) {
+        if (!id_exists_locked(inv, id)) {
+            return id;
+        }
+        ++id;
+    }
+}
+
 static int add_book_locked(Inventory *inv, const char *title,
                            const char *author, const char *genre, int year)
 {
@@ -36,16 +57,55 @@ static int add_book_locked(Inventory *inv, const char *title,
         return -1;
     }
     b = &inv->books[inv->count];
-    b->id = inv->count + 1;
-    safe_strcpy(b->title,  title,  MAX_TITLE_LEN);
+    b->id = next_id_locked(inv);
+    safe_strcpy(b->title, title, MAX_TITLE_LEN);
     safe_strcpy(b->author, author, MAX_AUTHOR_LEN);
-    safe_strcpy(b->genre,  genre,  MAX_GENRE_LEN);
-    b->year     = year;
-    b->shelf    = -1;
+    safe_strcpy(b->genre, genre, MAX_GENRE_LEN);
+    b->year = year;
+    b->shelf = -1;
     b->position = -1;
-    b->status   = STATUS_AVAILABLE;
+    b->status = STATUS_AVAILABLE;
     inv->count++;
     return b->id;
+}
+
+static int import_book_locked(Inventory *inv, const Book *source)
+{
+    if (inv->count >= MAX_BOOKS || source->id <= 0 || id_exists_locked(inv, source->id)) {
+        return -1;
+    }
+
+    Book *target = &inv->books[inv->count];
+    *target = *source;
+    inv->count++;
+    return target->id;
+}
+
+int inventory_clear(Inventory *inv)
+{
+    if (inv == NULL) {
+        return -1;
+    }
+    if (pthread_mutex_lock(&inv->lock) != 0) {
+        return -1;
+    }
+    memset(inv->books, 0, sizeof(inv->books));
+    inv->count = 0;
+    pthread_mutex_unlock(&inv->lock);
+    return 0;
+}
+
+int inventory_import_book(Inventory *inv, const Book *book)
+{
+    if (inv == NULL || book == NULL) {
+        return -1;
+    }
+    if (pthread_mutex_lock(&inv->lock) != 0) {
+        return -1;
+    }
+    int result = import_book_locked(inv, book);
+    pthread_mutex_unlock(&inv->lock);
+    return result;
 }
 
 int inventory_add(Inventory *inv, const char *title, const char *author,
@@ -56,7 +116,9 @@ int inventory_add(Inventory *inv, const char *title, const char *author,
     if (inv == NULL || title == NULL || author == NULL || genre == NULL) {
         return -1;
     }
-    pthread_mutex_lock(&inv->lock);
+    if (pthread_mutex_lock(&inv->lock) != 0) {
+        return -1;
+    }
     id = add_book_locked(inv, title, author, genre, year);
     pthread_mutex_unlock(&inv->lock);
     return id;
@@ -65,8 +127,8 @@ int inventory_add(Inventory *inv, const char *title, const char *author,
 int inventory_load(Inventory *inv, const char *path)
 {
     FILE *fp;
-    char  line[MAX_LINE_LEN];
-    int   loaded = 0;
+    char line[MAX_LINE_LEN];
+    int loaded = 0;
 
     if (inv == NULL || path == NULL) {
         return -1;
@@ -76,11 +138,14 @@ int inventory_load(Inventory *inv, const char *path)
         return -1;
     }
 
-    pthread_mutex_lock(&inv->lock);
+    if (pthread_mutex_lock(&inv->lock) != 0) {
+        fclose(fp);
+        return -1;
+    }
     while (fgets(line, sizeof(line), fp) != NULL) {
         char *title, *author, *genre, *year_s;
         char *saveptr = NULL;
-        int   year;
+        int year;
         size_t len = strlen(line);
 
         if (len > 0 && line[len - 1] == '\n') {
@@ -90,17 +155,16 @@ int inventory_load(Inventory *inv, const char *path)
             continue;
         }
 
-        title  = strtok_r(line, "|", &saveptr);
+        title = strtok_r(line, "|", &saveptr);
         author = strtok_r(NULL, "|", &saveptr);
-        genre  = strtok_r(NULL, "|", &saveptr);
+        genre = strtok_r(NULL, "|", &saveptr);
         year_s = strtok_r(NULL, "|", &saveptr);
 
         if (title == NULL || author == NULL || genre == NULL || year_s == NULL) {
             continue;
         }
         year = atoi(trim(year_s));
-        if (add_book_locked(inv, trim(title), trim(author),
-                            trim(genre), year) > 0) {
+        if (add_book_locked(inv, trim(title), trim(author), trim(genre), year) > 0) {
             loaded++;
         }
     }
@@ -113,7 +177,6 @@ int inventory_load(Inventory *inv, const char *path)
 int inventory_save(Inventory *inv, const char *path)
 {
     FILE *fp;
-    int   i;
 
     if (inv == NULL || path == NULL) {
         return -1;
@@ -123,9 +186,12 @@ int inventory_save(Inventory *inv, const char *path)
         return -1;
     }
 
-    pthread_mutex_lock(&inv->lock);
+    if (pthread_mutex_lock(&inv->lock) != 0) {
+        fclose(fp);
+        return -1;
+    }
     fprintf(fp, "# Title|Author|Genre|Year\n");
-    for (i = 0; i < inv->count; i++) {
+    for (int i = 0; i < inv->count; i++) {
         Book *b = &inv->books[i];
         fprintf(fp, "%s|%s|%s|%d\n", b->title, b->author, b->genre, b->year);
     }
@@ -152,37 +218,32 @@ void inventory_sort_by_year_locked(Inventory *inv)
 
 void inventory_assign_shelves_locked(Inventory *inv)
 {
-    int i;
-    for (i = 0; i < inv->count; i++) {
-        int shelf    = i / SHELF_CAPACITY + 1;
+    for (int i = 0; i < inv->count; i++) {
+        int shelf = i / SHELF_CAPACITY + 1;
         int position = i % SHELF_CAPACITY + 1;
         if (shelf > MAX_SHELVES) {
-            inv->books[i].shelf    = -1;
+            inv->books[i].shelf = -1;
             inv->books[i].position = -1;
         } else {
-            inv->books[i].shelf    = shelf;
+            inv->books[i].shelf = shelf;
             inv->books[i].position = position;
         }
     }
 }
 
-static const char *status_str(BookStatus s)
-{
-    return (s == STATUS_AVAILABLE) ? "Available" : "Checked Out";
-}
-
 void inventory_display_all(Inventory *inv)
 {
-    int i;
     if (inv == NULL) {
         return;
     }
-    pthread_mutex_lock(&inv->lock);
+    if (pthread_mutex_lock(&inv->lock) != 0) {
+        return;
+    }
     printf("\n----------------------------------------------------------------------------------\n");
     printf("%-4s %-34s %-22s %-14s %-6s %-8s\n",
            "ID", "Title", "Author", "Genre", "Year", "Shelf/Pos");
     printf("----------------------------------------------------------------------------------\n");
-    for (i = 0; i < inv->count; i++) {
+    for (int i = 0; i < inv->count; i++) {
         Book *b = &inv->books[i];
         char loc[16];
         if (b->shelf > 0) {
@@ -194,8 +255,7 @@ void inventory_display_all(Inventory *inv)
                b->id, b->title, b->author, b->genre, b->year, loc);
     }
     printf("----------------------------------------------------------------------------------\n");
-    printf("Total books: %d   (statuses shown on search)\n", inv->count);
-    (void)status_str;
+    printf("Total books: %d\n", inv->count);
     pthread_mutex_unlock(&inv->lock);
 }
 
@@ -205,7 +265,9 @@ void inventory_display_count(Inventory *inv)
     if (inv == NULL) {
         return;
     }
-    pthread_mutex_lock(&inv->lock);
+    if (pthread_mutex_lock(&inv->lock) != 0) {
+        return;
+    }
     c = inv->count;
     pthread_mutex_unlock(&inv->lock);
     printf("Inventory currently holds %d book(s).\n", c);
