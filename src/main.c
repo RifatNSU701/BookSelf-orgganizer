@@ -40,7 +40,6 @@ static void print_menu(void)
     printf("----------------------------------------\n");
 }
 
-
 static void action_search(Inventory *inv)
 {
     int field;
@@ -61,7 +60,6 @@ static void action_search(Inventory *inv)
     }
 }
 
-/* Menu action: add a book with validated input. */
 static void action_add(Inventory *inv)
 {
     char title[MAX_TITLE_LEN];
@@ -83,7 +81,6 @@ static void action_add(Inventory *inv)
     }
 }
 
-/* Menu action: single-threaded sort (for comparison with the concurrent one). */
 static void action_single_sort(Inventory *inv, int strategy)
 {
     pthread_mutex_lock(&inv->lock);
@@ -97,7 +94,6 @@ static void action_single_sort(Inventory *inv, int strategy)
     inventory_display_all(inv);
 }
 
-/* Menu action: concurrent organize. Asks which order becomes the shelf order. */
 static void action_organize(Inventory *inv, SyncPrimitives *sync)
 {
     int strat;
@@ -114,7 +110,6 @@ static void action_organize(Inventory *inv, SyncPrimitives *sync)
     }
 }
 
-/* Menu action: race demo. */
 static void action_race_demo(void)
 {
     long expected = 4L * 100000L;
@@ -174,7 +169,7 @@ int main(void)
         int choice;
         print_menu();
         choice = input_menu_choice("Enter choice: ", 1, 12);
-        if (choice < 0) {           /* EOF: clean shutdown */
+        if (choice < 0) {
             printf("\nEOF received. Exiting.\n");
             break;
         }
@@ -186,7 +181,6 @@ int main(void)
             case 5:  action_single_sort(&inventory, 1); break;
             case 6:  action_single_sort(&inventory, 2); break;
             case 7:
-                /* Fresh semaphores per run so counts start at zero. */
                 if (sync_init(&sync) != 0) {
                     printf("Failed to initialise semaphores.\n");
                     break;
