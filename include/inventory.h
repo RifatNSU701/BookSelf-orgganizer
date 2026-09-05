@@ -32,6 +32,8 @@ typedef struct {
 
 int inventory_init(Inventory *inv);
 void inventory_destroy(Inventory *inv);
+int inventory_clear(Inventory *inv);
+int inventory_import_book(Inventory *inv, const Book *book);
 int inventory_load(Inventory *inv, const char *path);
 int inventory_save(Inventory *inv, const char *path);
 int inventory_add(Inventory *inv, const char *title, const char *author,
