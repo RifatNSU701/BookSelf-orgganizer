@@ -1,0 +1,48 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+dist/
+
+# Native build artifacts
+bin/
+obj/
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+*.exe
+
+# IDE/project metadata
+*.cbp
+*.depend
+*.layout
+.vscode/
+.idea/
+
+# Runtime data
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Runtime logs
+logs/*.log
+
+# Coverage and profiling
+coverage/
+*.gcda
+*.gcno
+*.gcov
+*.profraw
+*.profdata
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
