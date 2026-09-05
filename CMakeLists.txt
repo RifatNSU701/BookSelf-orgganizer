@@ -60,6 +60,10 @@ set_target_properties(bookshelf-migrate PROPERTIES OUTPUT_NAME "BookShelfMigrate
 
 if(BSO_BUILD_TESTS AND BUILD_TESTING)
     enable_testing()
+    add_executable(test_repository tests/test_repository.c)
+    target_link_libraries(test_repository PRIVATE bookshelf_core)
+    target_compile_options(test_repository PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>)
+    add_test(NAME repository_persistence COMMAND test_repository)
 endif()
 
 install(TARGETS bookshelf-organizer bookshelf-migrate RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
