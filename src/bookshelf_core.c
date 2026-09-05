@@ -1,17 +1,13 @@
 #include "bookshelf_core.h"
 #include "inventory.h"
 
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 
 struct BsInventory {
     Inventory inventory;
 };
-
-static BsError map_result(int result)
-{
-    return result == 0 ? BS_OK : BS_INVALID_ARGUMENT;
-}
 
 BsError bs_inventory_create(BsInventory **inventory)
 {
@@ -64,7 +60,9 @@ BsError bs_inventory_count(const BsInventory *inventory, size_t *count)
     }
 
     Inventory *mutable_inventory = (Inventory *)&inventory->inventory;
-    pthread_mutex_lock(&mutable_inventory->lock);
+    if (pthread_mutex_lock(&mutable_inventory->lock) != 0) {
+        return BS_SYNC_ERROR;
+    }
     *count = (size_t)mutable_inventory->count;
     pthread_mutex_unlock(&mutable_inventory->lock);
     return BS_OK;
@@ -77,7 +75,10 @@ BsError bs_inventory_get(const BsInventory *inventory, int id, BsBook *book)
     }
 
     Inventory *mutable_inventory = (Inventory *)&inventory->inventory;
-    pthread_mutex_lock(&mutable_inventory->lock);
+    if (pthread_mutex_lock(&mutable_inventory->lock) != 0) {
+        return BS_SYNC_ERROR;
+    }
+
     for (int i = 0; i < mutable_inventory->count; ++i) {
         const Book *source = &mutable_inventory->books[i];
         if (source->id == id) {
@@ -96,6 +97,7 @@ BsError bs_inventory_get(const BsInventory *inventory, int id, BsBook *book)
             return BS_OK;
         }
     }
+
     pthread_mutex_unlock(&mutable_inventory->lock);
     return BS_NOT_FOUND;
 }
@@ -105,7 +107,9 @@ BsError bs_inventory_assign_shelves(BsInventory *inventory)
     if (inventory == NULL) {
         return BS_INVALID_ARGUMENT;
     }
-    pthread_mutex_lock(&inventory->inventory.lock);
+    if (pthread_mutex_lock(&inventory->inventory.lock) != 0) {
+        return BS_SYNC_ERROR;
+    }
     inventory_assign_shelves_locked(&inventory->inventory);
     pthread_mutex_unlock(&inventory->inventory.lock);
     return BS_OK;
@@ -116,7 +120,9 @@ BsError bs_inventory_sort_title(BsInventory *inventory)
     if (inventory == NULL) {
         return BS_INVALID_ARGUMENT;
     }
-    pthread_mutex_lock(&inventory->inventory.lock);
+    if (pthread_mutex_lock(&inventory->inventory.lock) != 0) {
+        return BS_SYNC_ERROR;
+    }
     inventory_sort_by_title_locked(&inventory->inventory);
     pthread_mutex_unlock(&inventory->inventory.lock);
     return BS_OK;
@@ -127,7 +133,9 @@ BsError bs_inventory_sort_genre(BsInventory *inventory)
     if (inventory == NULL) {
         return BS_INVALID_ARGUMENT;
     }
-    pthread_mutex_lock(&inventory->inventory.lock);
+    if (pthread_mutex_lock(&inventory->inventory.lock) != 0) {
+        return BS_SYNC_ERROR;
+    }
     inventory_sort_by_genre_locked(&inventory->inventory);
     pthread_mutex_unlock(&inventory->inventory.lock);
     return BS_OK;
@@ -138,7 +146,9 @@ BsError bs_inventory_sort_year(BsInventory *inventory)
     if (inventory == NULL) {
         return BS_INVALID_ARGUMENT;
     }
-    pthread_mutex_lock(&inventory->inventory.lock);
+    if (pthread_mutex_lock(&inventory->inventory.lock) != 0) {
+        return BS_SYNC_ERROR;
+    }
     inventory_sort_by_year_locked(&inventory->inventory);
     pthread_mutex_unlock(&inventory->inventory.lock);
     return BS_OK;
