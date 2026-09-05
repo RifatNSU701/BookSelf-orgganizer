@@ -38,7 +38,6 @@ set_target_properties(bookshelf_core PROPERTIES OUTPUT_NAME "bookshelf_core")
 target_include_directories(bookshelf_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(bookshelf_core PUBLIC Threads::Threads SQLite::SQLite3)
 target_compile_options(bookshelf_core PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>)
-
 target_compile_definitions(bookshelf_core PRIVATE $<$<CONFIG:Debug>:BSO_DEBUG_BUILD=1>)
 
 add_executable(bookshelf-organizer src/main.c)
@@ -65,6 +64,10 @@ if(BSO_BUILD_TESTS AND BUILD_TESTING)
     target_link_libraries(test_repository PRIVATE bookshelf_core)
     target_compile_options(test_repository PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>)
     add_test(NAME repository_persistence COMMAND test_repository)
+    add_executable(test_worker_pool tests/test_worker_pool.c)
+    target_link_libraries(test_worker_pool PRIVATE bookshelf_core)
+    target_compile_options(test_worker_pool PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>)
+    add_test(NAME worker_pool_stress COMMAND test_worker_pool)
 endif()
 
 install(TARGETS bookshelf-organizer bookshelf-migrate RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
