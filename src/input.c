@@ -16,13 +16,11 @@ int input_string(const char *prompt, char *buf, size_t size)
             fflush(stdout);
         }
         if (!read_line(buf, size, stdin)) {
-            return 0; /* EOF */
+            return 0;
         }
-        /* Reject empty / whitespace-only input. */
         {
             char *t = trim(buf);
             if (t[0] != '\0') {
-                /* Shift trimmed content to the front. */
                 memmove(buf, t, strlen(t) + 1);
                 return 1;
             }
@@ -45,7 +43,7 @@ int input_int(const char *prompt, int min, int max, int *out)
             fflush(stdout);
         }
         if (!read_line(line, sizeof(line), stdin)) {
-            return 0; /* EOF */
+            return 0;
         }
         {
             char *t = trim(line);
@@ -72,7 +70,7 @@ int input_menu_choice(const char *prompt, int min, int max)
 {
     int choice;
     if (!input_int(prompt, min, max, &choice)) {
-        return -1; /* EOF -> caller should exit cleanly */
+        return -1;
     }
     return choice;
 }
