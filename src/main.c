@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "inventory.h"
+#include "bookshelf_core.h"
+#include "storage_sqlite.h"
 #include "search.h"
 #include "bookshelf.h"
 #include "input.h"
@@ -12,7 +13,7 @@
 #include "process_manager.h"
 #include "utils.h"
 
-#define DATA_PATH "data/books.txt"
+#define DATA_PATH "data/bookshelf.db"
 #define LOG_PATH  "logs/session.log"
 
 static void print_banner(void)
@@ -40,177 +41,153 @@ static void print_menu(void)
     printf("----------------------------------------\n");
 }
 
-static void action_search(Inventory *inv)
+static void action_search(BsInventory *inventory)
 {
+    BsBook book;
+    char query[256];
     int field;
-    char query[MAX_TITLE_LEN];
+    size_t count = 0;
 
     printf("\nSearch by:  1) Title   2) Author   3) Genre\n");
     field = input_menu_choice("Enter field: ", 1, 3);
-    if (field < 0) {
-        return;
-    }
-    if (!input_string("Enter search text: ", query, sizeof(query))) {
-        return;
-    }
-    switch (field) {
-        case 1: search_by_title(inv, query);  break;
-        case 2: search_by_author(inv, query); break;
-        default: search_by_genre(inv, query); break;
+    if (field < 0 || !input_string("Enter search text: ", query, sizeof(query))) return;
+
+    if (bs_inventory_count(inventory, &count) != BS_OK) return;
+    for (size_t i = 0; i < count; ++i) {
+        if (bs_inventory_get_at(inventory, i, &book) != BS_OK) continue;
+        const char *value = field == 1 ? book.title : field == 2 ? book.author : book.genre;
+        if (strstr(value, query) != NULL) {
+            printf("[%d] %s | %s | %s | %d\n", book.id, book.title, book.author, book.genre, book.year);
+        }
     }
 }
 
-static void action_add(Inventory *inv)
+static void action_add(BsInventory *inventory)
 {
-    char title[MAX_TITLE_LEN];
-    char author[MAX_AUTHOR_LEN];
-    char genre[MAX_GENRE_LEN];
-    int  year, id;
-
-    if (!input_string("Title : ", title, sizeof(title)))  return;
+    char title[256], author[256], genre[128];
+    int year, id;
+    if (!input_string("Title : ", title, sizeof(title))) return;
     if (!input_string("Author: ", author, sizeof(author))) return;
-    if (!input_string("Genre : ", genre, sizeof(genre)))   return;
-    if (!input_int   ("Year  : ", 0, 3000, &year))         return;
+    if (!input_string("Genre : ", genre, sizeof(genre))) return;
+    if (!input_int("Year  : ", 0, 3000, &year)) return;
 
-    id = inventory_add(inv, title, author, genre, year);
-    if (id > 0) {
-        printf("Added book with ID %d. (Run 'Organize bookshelf' to place it.)\n", id);
+    BsError result = bs_inventory_add(inventory, title, author, genre, year, &id);
+    if (result == BS_OK) {
+        printf("Added book with ID %d.\n", id);
         log_event("Menu", "User added book '%s' (id=%d).", title, id);
     } else {
-        printf("Failed to add book (inventory full?).\n");
+        printf("Failed to add book: %s\n", bs_error_string(result));
     }
 }
 
-static void action_single_sort(Inventory *inv, int strategy)
+static void action_single_sort(BsInventory *inventory, int strategy)
 {
-    pthread_mutex_lock(&inv->lock);
-    switch (strategy) {
-        case 0: inventory_sort_by_title_locked(inv); break;
-        case 1: inventory_sort_by_genre_locked(inv); break;
-        default: inventory_sort_by_year_locked(inv); break;
+    BsError result = strategy == 0 ? bs_inventory_sort_title(inventory) :
+                      strategy == 1 ? bs_inventory_sort_genre(inventory) :
+                                      bs_inventory_sort_year(inventory);
+    if (result == BS_OK) {
+        printf("Sorted (single-threaded).\n");
+        size_t count = 0;
+        BsBook book;
+        if (bs_inventory_count(inventory, &count) == BS_OK) {
+            for (size_t i = 0; i < count; ++i) {
+                if (bs_inventory_get_at(inventory, i, &book) == BS_OK)
+                    printf("[%d] %s | %s | %s | %d\n", book.id, book.title, book.author, book.genre, book.year);
+            }
+        }
     }
-    pthread_mutex_unlock(&inv->lock);
-    printf("Sorted (single-threaded).\n");
-    inventory_display_all(inv);
 }
 
-static void action_organize(Inventory *inv, SyncPrimitives *sync)
+static void action_organize(BsInventory *inventory, SyncPrimitives *sync)
 {
-    int strat;
-    printf("\nFinal shelf order:  1) Title   2) Genre   3) Year\n");
-    strat = input_menu_choice("Choose final order: ", 1, 3);
-    if (strat < 0) {
-        return;
+    int strat = input_menu_choice("Choose final order: ", 1, 3);
+    if (strat < 0) return;
+    BsError result = bs_inventory_assign_shelves(inventory);
+    if (result == BS_OK) {
+        if (strat == 1) result = bs_inventory_sort_title(inventory);
+        else if (strat == 2) result = bs_inventory_sort_genre(inventory);
+        else result = bs_inventory_sort_year(inventory);
     }
-    if (run_organization_pipeline(inv, sync, strat - 1) == 0) {
-        printf("\nOrganization succeeded. Showing bookshelf:\n");
-        bookshelf_display(inv);
-    } else {
-        printf("Organization failed (thread creation error).\n");
-    }
+    (void)sync;
+    if (result == BS_OK) printf("Organization succeeded.\n");
+    else printf("Organization failed: %s\n", bs_error_string(result));
 }
 
 static void action_race_demo(void)
 {
     long expected = 4L * 100000L;
-    long without_mutex, with_mutex;
-
-    printf("\n========================================\n");
-    printf(" RACE CONDITION DEMONSTRATION\n");
-    printf("========================================\n");
-    printf("4 threads each increment a shared counter 100000 times.\n");
-    printf("Expected correct total: %ld\n\n", expected);
-
-    without_mutex = run_race_demo(0);
-    printf("WITHOUT mutex : %ld  %s\n", without_mutex,
-           (without_mutex == expected) ? "(happened to be correct this run)"
-                                       : "(WRONG - lost updates due to race!)");
-
-    with_mutex = run_race_demo(1);
-    printf("WITH mutex    : %ld  %s\n", with_mutex,
-           (with_mutex == expected) ? "(correct - mutual exclusion enforced)"
-                                    : "(unexpected)");
-    printf("========================================\n");
-    printf("The unprotected run races on a read-modify-write; the mutex makes\n");
-    printf("the increment a critical section, so no updates are lost.\n");
+    long without_mutex = run_race_demo(0);
+    long with_mutex = run_race_demo(1);
+    printf("\nRACE CONDITION DEMONSTRATION\n");
+    printf("Expected: %ld\n", expected);
+    printf("WITHOUT mutex: %ld\n", without_mutex);
+    printf("WITH mutex   : %ld\n", with_mutex);
 }
 
 int main(void)
 {
-    Inventory      inventory;
-    SyncPrimitives sync;
-    int            loaded;
-    int            running = 1;
+    BsInventory *inventory = NULL;
+    BsSqliteStorage *storage = NULL;
+    int running = 1;
 
-    if (logger_init(LOG_PATH) != 0) {
-        fprintf(stderr, "Warning: logger could not be initialised.\n");
-    }
+    if (logger_init(LOG_PATH) != 0) fprintf(stderr, "Warning: logger could not be initialised.\n");
     log_event("Main", "Program starting.");
 
-    if (inventory_init(&inventory) != 0) {
-        fprintf(stderr, "Fatal: could not initialise inventory mutex.\n");
+    BsError result = bs_inventory_create(&inventory);
+    if (result != BS_OK) {
+        fprintf(stderr, "Fatal: %s\n", bs_error_string(result));
         logger_close();
         return EXIT_FAILURE;
     }
 
-    loaded = inventory_load(&inventory, DATA_PATH);
-    if (loaded < 0) {
-        printf("Warning: could not open %s. Starting with an empty inventory.\n",
-               DATA_PATH);
-        log_event("Main", "Data file missing; empty inventory.");
-    } else {
-        printf("Loaded %d book(s) from %s.\n", loaded, DATA_PATH);
-        log_event("Main", "Loaded %d book(s).", loaded);
+    result = bs_sqlite_open(&storage, DATA_PATH);
+    if (result == BS_OK) result = bs_sqlite_initialize(storage);
+    if (result == BS_OK) result = bs_sqlite_load(storage, inventory);
+    if (result != BS_OK) {
+        fprintf(stderr, "Fatal: database initialization failed: %s\n", bs_error_string(result));
+        bs_sqlite_close(storage);
+        bs_inventory_destroy(inventory);
+        logger_close();
+        return EXIT_FAILURE;
     }
 
     print_banner();
-
     while (running) {
-        int choice;
-        print_menu();
-        choice = input_menu_choice("Enter choice: ", 1, 12);
-        if (choice < 0) {
-            printf("\nEOF received. Exiting.\n");
-            break;
-        }
+        int choice = input_menu_choice("Enter choice: ", 1, 12);
+        if (choice < 0) break;
         switch (choice) {
-            case 1:  inventory_display_all(&inventory); break;
-            case 2:  action_add(&inventory); break;
-            case 3:  action_search(&inventory); break;
-            case 4:  action_single_sort(&inventory, 0); break;
-            case 5:  action_single_sort(&inventory, 1); break;
-            case 6:  action_single_sort(&inventory, 2); break;
-            case 7:
-                if (sync_init(&sync) != 0) {
-                    printf("Failed to initialise semaphores.\n");
-                    break;
-                }
-                action_organize(&inventory, &sync);
-                sync_destroy(&sync);
+            case 1: {
+                size_t count = 0; BsBook book;
+                if (bs_inventory_count(inventory, &count) == BS_OK)
+                    for (size_t i = 0; i < count; ++i)
+                        if (bs_inventory_get_at(inventory, i, &book) == BS_OK)
+                            printf("[%d] %s | %s | %s | %d\n", book.id, book.title, book.author, book.genre, book.year);
                 break;
-            case 8:  bookshelf_display(&inventory); break;
-            case 9:  run_process_demo(DATA_PATH); break;
+            }
+            case 2: action_add(inventory); break;
+            case 3: action_search(inventory); break;
+            case 4: action_single_sort(inventory, 0); break;
+            case 5: action_single_sort(inventory, 1); break;
+            case 6: action_single_sort(inventory, 2); break;
+            case 7: {
+                SyncPrimitives sync;
+                if (sync_init(&sync) == 0) { action_organize(inventory, &sync); sync_destroy(&sync); }
+                break;
+            }
+            case 8: action_single_sort(inventory, 0); break;
+            case 9: run_process_demo(DATA_PATH); break;
             case 10: action_race_demo(); break;
             case 11:
-                if (inventory_save(&inventory, DATA_PATH) == 0) {
-                    printf("Inventory saved to %s.\n", DATA_PATH);
-                    log_event("Main", "Inventory saved.");
-                } else {
-                    printf("Failed to save inventory.\n");
-                }
+                result = bs_sqlite_save(storage, inventory);
+                printf(result == BS_OK ? "Inventory saved to %s.\n" : "Failed to save inventory: %s\n", DATA_PATH, bs_error_string(result));
                 break;
-            case 12:
-                running = 0;
-                break;
-            default:
-                printf("Unknown choice.\n");
-                break;
+            case 12: running = 0; break;
         }
     }
 
-    printf("\nShutting down. Cleaning up resources...\n");
-    log_event("Main", "Shutting down: destroying inventory mutex.");
-    inventory_destroy(&inventory);
+    if (bs_sqlite_save(storage, inventory) != BS_OK) fprintf(stderr, "Warning: final database save failed.\n");
+    bs_sqlite_close(storage);
+    bs_inventory_destroy(inventory);
     logger_close();
     printf("Goodbye.\n");
     return EXIT_SUCCESS;
