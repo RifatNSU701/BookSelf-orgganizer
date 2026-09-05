@@ -20,10 +20,7 @@ typedef enum {
     BS_IO_ERROR = 9
 } BsError;
 
-typedef enum {
-    BS_STATUS_AVAILABLE = 0,
-    BS_STATUS_CHECKED_OUT = 1
-} BsBookStatus;
+typedef enum { BS_STATUS_AVAILABLE = 0, BS_STATUS_CHECKED_OUT = 1 } BsBookStatus;
 
 typedef struct {
     int id;
@@ -46,6 +43,7 @@ BsError bs_inventory_import_book(BsInventory *inventory, const BsBook *book);
 BsError bs_inventory_count(const BsInventory *inventory, size_t *count);
 BsError bs_inventory_get_at(const BsInventory *inventory, size_t index, BsBook *book);
 BsError bs_inventory_get(const BsInventory *inventory, int id, BsBook *book);
+BsError bs_inventory_clone(const BsInventory *source, BsInventory **clone);
 BsError bs_inventory_assign_shelves(BsInventory *inventory);
 BsError bs_inventory_sort_title(BsInventory *inventory);
 BsError bs_inventory_sort_genre(BsInventory *inventory);
