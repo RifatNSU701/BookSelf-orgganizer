@@ -40,7 +40,7 @@ target_link_libraries(bookshelf_core PUBLIC Threads::Threads SQLite::SQLite3)
 target_compile_options(bookshelf_core PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>)
 target_compile_definitions(bookshelf_core PRIVATE $<$<CONFIG:Debug>:BSO_DEBUG_BUILD=1>)
 
-aadd_executable(bookshelf-organizer src/main.c)
+add_executable(bookshelf-organizer src/main.c)
 target_link_libraries(bookshelf-organizer PRIVATE bookshelf_core)
 target_compile_options(bookshelf-organizer PRIVATE $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wformat=2>)
 set_target_properties(bookshelf-organizer PROPERTIES OUTPUT_NAME "BookShelfOrganizer")
