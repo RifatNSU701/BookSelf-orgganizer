@@ -27,10 +27,6 @@ void inventory_destroy(Inventory *inv)
     pthread_mutex_destroy(&inv->lock);
 }
 
-/*
- * add_book_locked
- * Internal helper: append a book assuming the lock is held. Returns id or -1.
- */
 static int add_book_locked(Inventory *inv, const char *title,
                            const char *author, const char *genre, int year)
 {
@@ -40,7 +36,7 @@ static int add_book_locked(Inventory *inv, const char *title,
         return -1;
     }
     b = &inv->books[inv->count];
-    b->id = inv->count + 1;               /* simple stable 1-based id */
+    b->id = inv->count + 1;
     safe_strcpy(b->title,  title,  MAX_TITLE_LEN);
     safe_strcpy(b->author, author, MAX_AUTHOR_LEN);
     safe_strcpy(b->genre,  genre,  MAX_GENRE_LEN);
@@ -60,7 +56,6 @@ int inventory_add(Inventory *inv, const char *title, const char *author,
     if (inv == NULL || title == NULL || author == NULL || genre == NULL) {
         return -1;
     }
-    /* CRITICAL SECTION: mutating shared state. */
     pthread_mutex_lock(&inv->lock);
     id = add_book_locked(inv, title, author, genre, year);
     pthread_mutex_unlock(&inv->lock);
@@ -83,7 +78,6 @@ int inventory_load(Inventory *inv, const char *path)
 
     pthread_mutex_lock(&inv->lock);
     while (fgets(line, sizeof(line), fp) != NULL) {
-        /* Format: Title|Author|Genre|Year   ('#' starts a comment line) */
         char *title, *author, *genre, *year_s;
         char *saveptr = NULL;
         int   year;
@@ -102,7 +96,7 @@ int inventory_load(Inventory *inv, const char *path)
         year_s = strtok_r(NULL, "|", &saveptr);
 
         if (title == NULL || author == NULL || genre == NULL || year_s == NULL) {
-            continue; /* malformed line: skip defensively */
+            continue;
         }
         year = atoi(trim(year_s));
         if (add_book_locked(inv, trim(title), trim(author),
@@ -141,8 +135,6 @@ int inventory_save(Inventory *inv, const char *path)
     return 0;
 }
 
-/* ---- _locked operations (caller holds inv->lock) ------------------------ */
-
 void inventory_sort_by_title_locked(Inventory *inv)
 {
     sort_books_by_title(inv->books, inv->count);
@@ -161,12 +153,10 @@ void inventory_sort_by_year_locked(Inventory *inv)
 void inventory_assign_shelves_locked(Inventory *inv)
 {
     int i;
-    /* Place books in their current order into shelves of SHELF_CAPACITY. */
     for (i = 0; i < inv->count; i++) {
         int shelf    = i / SHELF_CAPACITY + 1;
         int position = i % SHELF_CAPACITY + 1;
         if (shelf > MAX_SHELVES) {
-            /* Out of shelf space: mark as unplaced rather than overflow. */
             inv->books[i].shelf    = -1;
             inv->books[i].position = -1;
         } else {
@@ -175,8 +165,6 @@ void inventory_assign_shelves_locked(Inventory *inv)
         }
     }
 }
-
-/* ---- Display helpers (take the lock internally) ------------------------- */
 
 static const char *status_str(BookStatus s)
 {
@@ -207,7 +195,7 @@ void inventory_display_all(Inventory *inv)
     }
     printf("----------------------------------------------------------------------------------\n");
     printf("Total books: %d   (statuses shown on search)\n", inv->count);
-    (void)status_str; /* status printed in search views */
+    (void)status_str;
     pthread_mutex_unlock(&inv->lock);
 }
 
